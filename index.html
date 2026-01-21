@@ -3,72 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英聽王成績分析 - 雙欄好讀版 (含過程預警)</title>
+    <title>英聽王成績分析 - 紫色百分比版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; background-color: #f1f5f9; }
-        /* 卡片基礎設定 */
-        .card { background: white; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 0; overflow: hidden; }
+        
+        /* 卡片設計 */
+        .card { 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            padding: 0; 
+            overflow: hidden; 
+            margin-bottom: 1.5rem; 
+            break-inside: avoid;   
+        }
+        
         .btn { cursor: pointer; transition: 0.2s; user-select: none; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* 表格樣式 */
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th { background-color: #f8fafc; color: #64748b; font-weight: bold; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 0.85rem; }
-        td { padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155; vertical-align: middle; font-size: 0.95rem; }
+        th { background-color: #f8fafc; color: #64748b; font-weight: bold; padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 0.9rem; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155; vertical-align: middle; font-size: 1rem; }
         tr:last-child td { border-bottom: none; }
         
-        /* 狀態標籤顏色 */
-        .status-badge { padding: 2px 8px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; display: inline-block; }
-        .status-done { background-color: #dcfce7; color: #15803d; } 
-        .status-low { background-color: #fce7f3; color: #be185d; } 
+        /* 狀態標籤 */
+        .status-badge { padding: 4px 10px; border-radius: 99px; font-size: 0.85rem; font-weight: 700; display: inline-block; }
+        .status-done { background-color: #dcfce7; color: #166534; } 
+        .status-low { background-color: #f3e8ff; color: #6b21a8; } /* 改為紫色系 */
         .status-pending { background-color: #fef9c3; color: #a16207; } 
         .status-alert { background-color: #fee2e2; color: #b91c1c; } 
         .score-perfect { color: #ea580c; font-weight: 800; }
+        .text-warn { color: #dc2626; font-weight: 800; }
 
-        /* RWD 手機版優化 */
         @media (max-width: 768px) {
             thead { display: none; }
-            tbody tr {
-                display: block;
-                border-bottom: 1px solid #e2e8f0;
-                padding: 10px;
-            }
-            td {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: none;
-                padding: 4px 0;
-            }
-            td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                color: #94a3b8;
-                font-size: 0.85rem;
-            }
+            tbody tr { display: block; border-bottom: 1px solid #e2e8f0; padding: 12px; }
+            td { display: flex; justify-content: space-between; align-items: center; border-bottom: none; padding: 6px 0; }
+            td::before { content: attr(data-label); font-weight: bold; color: #94a3b8; font-size: 0.9rem; }
+            .text-2xl { font-size: 1.25rem; } 
         }
         
-        /* 時間戳記樣式 */
-        .timestamp-badge {
-            background-color: #fff; color: #475569; padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; font-weight: bold; display: inline-block; margin-top: 5px; border: 1px solid #cbd5e1;
+        /* 時間標籤 */
+        .timestamp-badge { 
+            background-color: #fff; 
+            color: #475569; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            font-family: monospace; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            display: inline-block; 
+            margin-top: 8px; 
+            border: 1px solid #cbd5e1; 
         }
+        
+        .input-control { border: 2px solid #3b82f6; color: #1e40af; padding: 10px 16px; border-radius: 8px; font-weight: bold; outline: none; }
+        .class-select {
+            appearance: none; cursor: pointer; padding-right: 32px;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231e40af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;
+        }
+
+        .chart-container { position: relative; height: 320px; width: 100%; display: flex; justify-content: center; }
     </style>
 </head>
 <body class="p-4 md:p-8 max-w-6xl mx-auto" id="captureArea">
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">英聽王成績分析 📊</h1>
+            <h1 id="mainTitle" class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight mb-3">英聽王成績分析 📊</h1>
             <div id="analysisTimeDisplay" class="hidden">
                 <span class="timestamp-badge">統計時間：尚未匯入</span>
             </div>
         </div>
         
-        <div class="flex flex-wrap gap-2 w-full md:w-auto" data-html2canvas-ignore="true">
+        <div class="flex flex-wrap gap-2 w-full md:w-auto items-center" data-html2canvas-ignore="true">
+            <select id="classSelect" onchange="updateClassInfo()" class="input-control class-select shadow w-28">
+                <option value="" disabled selected>選班級</option>
+                <optgroup label="三年級"> <option value="3A">3A</option><option value="3B">3B</option><option value="3C">3C</option> </optgroup>
+                <optgroup label="四年級"> <option value="4A">4A</option><option value="4B">4B</option><option value="4C">4C</option> </optgroup>
+                <optgroup label="五年級"> <option value="5A">5A</option><option value="5B">5B</option><option value="5C">5C</option> </optgroup>
+                <optgroup label="六年級"> <option value="6A">6A</option><option value="6B">6B</option><option value="6C">6C</option> </optgroup>
+            </select>
+            <input type="text" id="customClassInput" placeholder="或手動輸入" oninput="updateClassInfo()" class="input-control shadow w-32">
             <label class="btn bg-blue-600 text-white px-4 py-3 rounded-lg shadow flex-1 md:flex-none text-center block">
                 <span>📂 匯入</span>
                 <input type="file" id="fileInput" accept=".csv, .xlsx, .xls" class="hidden">
@@ -92,95 +115,91 @@
         </div>
     </div>
 
-    <div id="dashboard" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 hidden">
-        <div class="card p-3 border-t-4 border-blue-500 flex flex-col items-center justify-center py-4">
-            <div class="text-slate-500 text-xs font-bold">全班</div>
-            <div class="text-2xl font-bold text-slate-800" id="stat-total">0</div>
-        </div>
-        <div class="card p-3 border-t-4 border-red-500 bg-red-50 flex flex-col items-center justify-center py-4">
-            <div class="text-red-700 text-xs font-bold">未完成</div>
-            <div class="text-2xl font-bold text-red-600" id="stat-incomplete">0</div>
-        </div>
-        <div class="card p-3 border-t-4 border-pink-500 bg-pink-50 flex flex-col items-center justify-center py-4">
-            <div class="text-pink-700 text-xs font-bold">低分</div>
-            <div class="text-2xl font-bold text-pink-600" id="stat-low">0</div>
-        </div>
-        <div class="card p-3 border-t-4 border-green-500 flex flex-col items-center justify-center py-4">
-            <div class="text-slate-500 text-xs font-bold">OK人數</div>
-            <div class="text-2xl font-bold text-green-600" id="stat-ok">0</div>
-        </div>
-    </div>
-
-    <div id="resultArea" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        
-        <div class="space-y-6">
+    <div id="dashboard" class="hidden mb-8">
+        <div class="grid grid-cols-2 gap-6 mb-6">
             
-            <div class="card border-t-4 border-red-500 shadow-sm">
-                <div class="bg-red-50 px-4 py-3 border-b border-red-100 flex justify-between items-center">
-                    <h2 class="font-bold text-red-800 flex items-center gap-2">🚨 優先追蹤 (尚未開始)</h2>
-                    <span id="count-urgent" class="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full font-bold">0</span>
+            <div class="card p-6 border-t-4 border-blue-500 flex flex-col items-center justify-center shadow-lg">
+                <div class="text-slate-500 text-lg font-bold tracking-wider mb-2">全班人數 / 完成率</div>
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-6xl font-extrabold text-slate-800 leading-none" id="stat-total">0</span>
+                    <span class="text-2xl font-bold text-blue-700 bg-blue-100 px-4 py-1 rounded-full mt-3" id="stat-rate">0%</span>
                 </div>
-                <table id="table-urgent">
-                    <thead class="bg-red-50/50"><tr><th class="w-14">座號</th><th>姓名</th><th>進度</th><th>狀態</th></tr></thead>
-                    <tbody></tbody>
-                </table>
             </div>
 
-            <div class="card border-t-4 border-pink-500 shadow-sm">
-                <div class="bg-pink-50 px-4 py-3 border-b border-pink-100 flex justify-between items-center">
-                    <h2 class="font-bold text-pink-800 flex items-center gap-2">😟 完成但分數偏低 (平均<70)</h2>
-                    <span id="count-low" class="text-xs bg-pink-200 text-pink-800 px-2 py-1 rounded-full font-bold">0</span>
-                </div>
-                <table id="table-low">
-                    <thead class="bg-pink-50/50"><tr><th class="w-14">座號</th><th>姓名</th><th>分數</th><th>平均</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <div class="card p-6 border-t-4 border-red-500 bg-red-50 flex flex-col items-center justify-center shadow-lg">
+                <div class="text-red-700 text-lg font-bold tracking-wider mb-2">未完成 / 落後</div>
+                <div class="text-6xl font-extrabold text-red-600" id="stat-incomplete">0</div>
             </div>
 
-            <div class="card border-t-4 border-yellow-500 shadow-sm">
-                <div class="bg-yellow-50 px-4 py-3 border-b border-yellow-100 flex justify-between items-center">
-                    <h2 class="font-bold text-yellow-800 flex items-center gap-2">⏳ 加油區 (進行中)</h2>
-                    <span id="count-progress" class="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full font-bold">0</span>
-                </div>
-                <table id="table-progress">
-                    <thead class="bg-yellow-50/50"><tr><th class="w-14">座號</th><th>姓名</th><th>進度</th><th>平均</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <div class="card p-6 border-t-4 border-purple-500 bg-purple-50 flex flex-col items-center justify-center shadow-lg">
+                <div class="text-purple-700 text-lg font-bold tracking-wider mb-2">完成但低分</div>
+                <div class="text-6xl font-extrabold text-purple-600" id="stat-low">0</div>
             </div>
 
+            <div class="card p-6 border-t-4 border-green-500 flex flex-col items-center justify-center shadow-lg">
+                <div class="text-slate-500 text-lg font-bold tracking-wider mb-2">合格人數 (含滿分)</div>
+                <div class="text-6xl font-extrabold text-green-600" id="stat-ok">0</div>
+            </div>
         </div>
 
-        <div class="space-y-6">
-
-            <div class="card border-t-4 border-orange-500 shadow-sm">
-                <div class="bg-orange-50 px-4 py-3 border-b border-orange-100 flex justify-between items-center">
-                    <h2 class="font-bold text-orange-800 flex items-center gap-2">🏆 4000分榮譽榜</h2>
-                    <span id="count-honor" class="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full font-bold">0</span>
+        <div class="card p-6 border-t-4 border-indigo-500 flex flex-col md:flex-row items-center justify-center gap-8 shadow-lg">
+            <div class="w-full md:w-1/3 flex flex-col justify-center items-center">
+                <h3 class="font-bold text-slate-700 mb-4 text-xl">📊 班級成績分布圖</h3>
+                <div class="chart-container">
+                    <canvas id="myChart"></canvas>
                 </div>
-                <table id="table-honor">
-                    <thead><tr><th class="w-14">座號</th><th>姓名</th><th>分數</th><th>狀態</th></tr></thead>
-                    <tbody></tbody>
-                </table>
             </div>
-
-            <div class="card border-t-4 border-green-500 shadow-sm">
-                <div class="bg-green-50 px-4 py-3 border-b border-green-100 flex justify-between items-center">
-                    <h2 class="font-bold text-green-800 flex items-center gap-2">✅ 已完成 (拚100可得獎)</h2>
-                    <span id="count-pass" class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-bold">0</span>
-                </div>
-                <table id="table-pass">
-                    <thead><tr><th class="w-14">座號</th><th>姓名</th><th>分數</th><th>平均</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <div class="w-full md:w-2/3 text-slate-700 text-base leading-loose px-2 md:px-4 mt-4 md:mt-0">
+                <p class="font-bold text-xl mb-3 border-b pb-2">💡 判讀說明：</p>
+                <ul class="space-y-3">
+                    <li><span class="text-orange-500 font-bold text-lg">● 橘色</span>：滿分 (太強了！)</li>
+                    <li><span class="text-green-600 font-bold text-lg">● 綠色</span>：已完成且合格 (很棒！)</li>
+                    <li><span class="text-purple-600 font-bold text-lg">● 紫色</span>：已完成但分數偏低 (需再加油)</li>
+                    <li><span class="text-yellow-600 font-bold text-lg">● 黃色</span>：進行中 (還在努力)</li>
+                    <li><span class="text-red-600 font-bold text-lg">● 紅色</span>：尚未開始 (需要提醒)</li>
+                </ul>
             </div>
-
         </div>
-
     </div>
+
+    <div id="resultArea" class="hidden columns-1 md:columns-2 gap-6 space-y-0"></div>
 
     <script>
+        Chart.register(ChartDataLabels);
+
         let globalReportText = "";
         let currentAnalysisTimeStr = "";
+        let currentJsonData = null;
+        let myPieChart = null;
+
+        const CATEGORY_CONFIG = {
+            urgent: { 
+                title: "🚨 優先追蹤 (尚未開始)", 
+                borderColor: "border-red-500", headerBg: "bg-red-50", headerBorder: "border-red-100", titleColor: "text-red-800", countBg: "bg-red-200",
+                headers: `<tr><th class="w-16">座號</th><th>姓名</th><th>進度</th><th>狀態</th></tr>`
+            },
+            low: { 
+                // 改紫色系
+                title: "😟 完成但分數偏低 (需再加油)", 
+                borderColor: "border-purple-500", headerBg: "bg-purple-50", headerBorder: "border-purple-100", titleColor: "text-purple-800", countBg: "bg-purple-200",
+                headers: `<tr><th class="w-16">座號</th><th>姓名</th><th>分數</th><th>平均</th></tr>`
+            },
+            progress: { 
+                title: "⏳ 加油區 (進行中)", 
+                borderColor: "border-yellow-500", headerBg: "bg-yellow-50", headerBorder: "border-yellow-100", titleColor: "text-yellow-800", countBg: "bg-yellow-200",
+                headers: `<tr><th class="w-16">座號</th><th>姓名</th><th>進度</th><th>平均</th></tr>`
+            },
+            honor: { 
+                title: "🏆 4000分榮譽榜", 
+                borderColor: "border-orange-500", headerBg: "bg-orange-50", headerBorder: "border-orange-100", titleColor: "text-orange-800", countBg: "bg-orange-200",
+                headers: `<tr><th class="w-16">座號</th><th>姓名</th><th>分數</th><th>狀態</th></tr>`
+            },
+            pass: { 
+                title: "✅ 已完成 (拚100可得獎)", 
+                borderColor: "border-green-500", headerBg: "bg-green-50", headerBorder: "border-green-100", titleColor: "text-green-800", countBg: "bg-green-200",
+                headers: `<tr><th class="w-16">座號</th><th>姓名</th><th>分數</th><th>平均</th></tr>`
+            }
+        };
 
         document.getElementById('fileInput').addEventListener('change', handleFile);
 
@@ -192,6 +211,17 @@
             return chars.join('');
         }
 
+        function updateClassInfo() {
+            if (currentJsonData) {
+                processData(currentJsonData); 
+            } else {
+                const manualVal = document.getElementById('customClassInput').value.trim();
+                const dropdownVal = document.getElementById('classSelect').value;
+                const finalClass = manualVal || dropdownVal;
+                document.getElementById('mainTitle').innerText = finalClass ? `${finalClass} 英聽王成績分析 📊` : '英聽王成績分析 📊';
+            }
+        }
+
         function handleFile(e) {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -199,8 +229,8 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                processData(jsonData);
+                currentJsonData = XLSX.utils.sheet_to_json(firstSheet);
+                processData(currentJsonData);
             };
             reader.readAsArrayBuffer(file);
         }
@@ -216,15 +246,19 @@
             const minute = String(now.getMinutes()).padStart(2, '0');
             currentAnalysisTimeStr = `${year}${month}${day}_${hour}${minute}`;
 
+            const manualVal = document.getElementById('customClassInput').value.trim();
+            const dropdownVal = document.getElementById('classSelect').value;
+            const finalClass = manualVal || dropdownVal || "";
+            const titlePrefix = finalClass ? finalClass + " " : "";
+
+            document.getElementById('mainTitle').innerText = `${titlePrefix}英聽王成績分析 📊`;
             document.getElementById('analysisTimeDisplay').innerHTML = `<span class="timestamp-badge">統計時間：${displayTime}</span>`;
             document.getElementById('analysisTimeDisplay').classList.remove('hidden');
 
-            ['honor', 'pass', 'low', 'progress', 'urgent'].forEach(id => {
-                document.querySelector(`#table-${id} tbody`).innerHTML = '';
-            });
-
-            let textHonor=[], textPass=[], textLow=[], textProgress=[], textUrgent=[];
+            let rowsData = { urgent: [], low: [], progress: [], honor: [], pass: [] };
+            let textData = { urgent: [], low: [], progress: [], honor: [], pass: [] };
             let stats = { total: 0, ok: 0, low: 0, incomplete: 0 };
+            let chartData = { honor: 0, pass: 0, low: 0, progress: 0, urgent: 0 };
 
             data.forEach(row => {
                 let rawName = row['姓名'] || row['Name'] || '未知';
@@ -240,97 +274,177 @@
                 if (status === '完成') {
                     if (totalScore === 4000) {
                         stats.ok++;
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
+                        chartData.honor++;
+                        rowsData.honor.push(`
                             <td data-label="座號" class="font-bold text-blue-600">${seat}</td>
                             <td data-label="姓名" class="font-bold">${name}</td>
-                            <td data-label="分數" class="score-perfect">${totalScore}</td>
+                            <td data-label="分數" class="score-perfect text-xl">${totalScore}</td>
                             <td data-label="狀態"><span class="status-badge status-done">滿分</span></td>
-                        `;
-                        document.querySelector('#table-honor tbody').appendChild(tr);
-                        textHonor.push(`${seat}號 ${name}`);
-
+                        `);
+                        textData.honor.push(`${seat}號 ${name}`);
                     } else if (avg < 70) {
                         stats.low++;
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
+                        chartData.low++;
+                        rowsData.low.push(`
                             <td data-label="座號" class="font-bold text-blue-600">${seat}</td>
                             <td data-label="姓名" class="font-bold">${name}</td>
-                            <td data-label="分數" class="text-pink-600 font-bold">${totalScore}</td>
+                            <td data-label="分數" class="text-purple-600 font-bold">${totalScore}</td>
                             <td data-label="平均" class="text-gray-500">${avg}</td>
-                        `;
-                        document.querySelector('#table-low tbody').appendChild(tr);
-                        textLow.push(`${seat}號 ${name} (均${avg})`);
-
+                        `);
+                        textData.low.push(`${seat}號 ${name} (均${avg})`);
                     } else {
                         stats.ok++;
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
+                        chartData.pass++;
+                        rowsData.pass.push(`
                             <td data-label="座號" class="font-bold text-blue-600">${seat}</td>
                             <td data-label="姓名" class="font-bold">${name}</td>
                             <td data-label="分數">${totalScore}</td>
                             <td data-label="平均" class="text-gray-500">${avg}</td>
-                        `;
-                        document.querySelector('#table-pass tbody').appendChild(tr);
-                        textPass.push(`${seat}號${name}(${totalScore})`);
+                        `);
+                        textData.pass.push(`${seat}號${name}(${totalScore})`);
                     }
                 } else {
                     stats.incomplete++;
                     if (prog.startsWith('0 /') || prog === '0') {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
+                        chartData.urgent++;
+                        rowsData.urgent.push(`
                             <td data-label="座號" class="font-bold text-blue-600">${seat}</td>
                             <td data-label="姓名" class="font-bold">${name}</td>
                             <td data-label="進度" class="text-red-600 font-bold">${prog}</td>
                             <td data-label="狀態"><span class="status-badge status-alert">未動</span></td>
-                        `;
-                        document.querySelector('#table-urgent tbody').appendChild(tr);
-                        textUrgent.push(`[未做] ${seat}號 ${name}`);
-
+                        `);
+                        textData.urgent.push(`[未做] ${seat}號 ${name}`);
                     } else {
-                        // 進行中：處理邏輯
-                        const tr = document.createElement('tr');
-                        
-                        // 判斷平均是否過低
-                        let avgDisplay = `${avg}`;
-                        if (avg < 70) {
-                            avgDisplay = `<span class="text-red-600 font-bold">⚠️${avg}</span>`;
-                        } else {
-                            avgDisplay = `<span class="text-gray-500">${avg}</span>`;
-                        }
-
-                        tr.innerHTML = `
+                        chartData.progress++;
+                        let avgDisplay = avg < 70 
+                            ? `<span class="text-warn">⚠️ ${avg}</span>` 
+                            : `<span class="text-gray-500">${avg}</span>`;
+                        rowsData.progress.push(`
                             <td data-label="座號" class="font-bold text-blue-600">${seat}</td>
                             <td data-label="姓名" class="font-bold">${name}</td>
                             <td data-label="進度" class="text-yellow-700 font-bold">${prog}</td>
                             <td data-label="平均">${avgDisplay}</td>
-                        `;
-                        document.querySelector('#table-progress tbody').appendChild(tr);
-                        
-                        // 文字報告也要註記
+                        `);
                         let reportNote = `[${prog}]`;
                         if(avg < 70) reportNote += `(⚠️均${avg})`;
-                        
-                        textProgress.push(`${seat}號 ${name} ${reportNote}`);
+                        textData.progress.push(`${seat}號 ${name} ${reportNote}`);
                     }
                 }
             });
 
             document.getElementById('stat-total').innerText = stats.total;
+            const completionRate = stats.total > 0 ? Math.round((stats.ok + stats.low) / stats.total * 100) : 0;
+            document.getElementById('stat-rate').innerText = completionRate + "%";
             document.getElementById('stat-ok').innerText = stats.ok;
             document.getElementById('stat-low').innerText = stats.low;
             document.getElementById('stat-incomplete').innerText = stats.incomplete;
-
-            document.getElementById('count-honor').innerText = textHonor.length;
-            document.getElementById('count-pass').innerText = textPass.length;
-            document.getElementById('count-low').innerText = textLow.length;
-            document.getElementById('count-urgent').innerText = textUrgent.length;
-            document.getElementById('count-progress').innerText = textProgress.length;
-
             document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('resultArea').classList.remove('hidden');
 
-            globalReportText = `【英聽王進度報告】\r\n統計時間：${displayTime}\r\n🎁 滿分同學可抽 600 元禮券！\r\n\r\n🚨 優先追蹤 (0進度)：\r\n${textUrgent.length ? textUrgent.join('\n') : '(無)'}\r\n\r\n😟 完成但分數偏低 (平均<70)：\r\n${textLow.length ? textLow.join('\n') : '(無)'}\r\n\r\n⏳ 加油區 (進行中)：\r\n${textProgress.length ? textProgress.join('\n') : '(無)'}\r\n\r\n✅ 已完成 (努力拚100可得獎)：\r\n${textPass.length ? textPass.join('、') : '(無)'}\r\n\r\n🏆 4000分滿分榮譽榜：\r\n${textHonor.length ? textHonor.join('、') : '(無)'}`;
+            const resultArea = document.getElementById('resultArea');
+            resultArea.innerHTML = ""; 
+            resultArea.classList.remove('hidden');
+
+            renderSmartCard(resultArea, 'urgent', rowsData.urgent);
+            renderSmartCard(resultArea, 'low', rowsData.low);
+            renderSmartCard(resultArea, 'progress', rowsData.progress);
+            renderSmartCard(resultArea, 'honor', rowsData.honor);
+            renderSmartCard(resultArea, 'pass', rowsData.pass);
+
+            updateChart(chartData);
+
+            const reportHeader = finalClass ? `【${finalClass} 英聽王進度報告】` : `【英聽王進度報告】`;
+            globalReportText = `${reportHeader}\r\n統計時間：${displayTime}\r\n🎁 滿分同學可抽 600 元禮券！\r\n\r\n🚨 優先追蹤 (0進度)：\r\n${textData.urgent.length ? textData.urgent.join('\n') : '(無)'}\r\n\r\n😟 完成但分數偏低 (需再加油)：\r\n${textData.low.length ? textData.low.join('\n') : '(無)'}\r\n\r\n⏳ 加油區 (進行中)：\r\n${textData.progress.length ? textData.progress.join('\n') : '(無)'}\r\n\r\n✅ 已完成 (努力拚100可得獎)：\r\n${textData.pass.length ? textData.pass.join('、') : '(無)'}\r\n\r\n🏆 4000分滿分榮譽榜：\r\n${textData.honor.length ? textData.honor.join('、') : '(無)'}`;
+        }
+
+        function renderSmartCard(container, type, rows) {
+            const config = CATEGORY_CONFIG[type];
+            const totalItems = rows.length;
+
+            if (totalItems === 0) {
+                if(type === 'low' || type === 'urgent') return;
+                const html = `
+                    <div class="card border-t-4 ${config.borderColor}">
+                        <div class="${config.headerBg} px-5 py-4 border-b ${config.headerBorder} flex justify-between items-center">
+                            <h2 class="font-bold flex items-center gap-2 text-lg ${config.titleColor}">${config.title}</h2>
+                            <span class="text-sm ${config.countBg} ${config.titleColor} px-3 py-1 rounded-full font-bold">0</span>
+                        </div>
+                        <div class="p-4 text-center text-gray-400 text-sm">無</div>
+                    </div>`;
+                container.innerHTML += html;
+                return;
+            }
+
+            const threshold = 15;
+            let splitSize = threshold;
+            
+            if (totalItems > threshold) {
+                splitSize = Math.ceil(totalItems / 2);
+            }
+
+            for (let i = 0; i < totalItems; i += splitSize) {
+                const chunk = rows.slice(i, i + splitSize);
+                const isSplit = totalItems > splitSize;
+                const partLabel = isSplit ? ` (${Math.floor(i/splitSize) + 1}/${Math.ceil(totalItems/splitSize)})` : "";
+                
+                let rowsHtml = "";
+                chunk.forEach(r => rowsHtml += `<tr>${r}</tr>`);
+
+                const html = `
+                    <div class="card border-t-4 ${config.borderColor}">
+                        <div class="${config.headerBg} px-5 py-4 border-b ${config.headerBorder} flex justify-between items-center">
+                            <h2 class="font-bold flex items-center gap-2 text-lg ${config.titleColor}">${config.title}${partLabel}</h2>
+                            <span class="text-sm ${config.countBg} ${config.titleColor} px-3 py-1 rounded-full font-bold">${totalItems}</span>
+                        </div>
+                        <table>
+                            <thead class="${config.headerBg}/50">${config.headers}</thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>`;
+                container.innerHTML += html;
+            }
+        }
+
+        function updateChart(data) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (myPieChart) myPieChart.destroy();
+
+            myPieChart = new Chart(ctx, {
+                type: 'doughnut', 
+                data: {
+                    labels: ['滿分榮譽', '已完成', '完成(需再加油)', '進行中', '尚未開始'],
+                    datasets: [{
+                        data: [data.honor, data.pass, data.low, data.progress, data.urgent],
+                        // 改紫色系 (#a855f7)
+                        backgroundColor: ['#f97316', '#22c55e', '#a855f7', '#eab308', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 16 }, 
+                            // 修改點：計算百分比
+                            formatter: (value, ctx) => {
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                // 避免除以 0
+                                if (sum === 0) return "";
+                                let percentage = (value * 100 / sum).toFixed(0) + "%";
+                                return value > 0 ? percentage : '';
+                            }
+                        }
+                    },
+                    layout: { padding: 10 }
+                }
+            });
         }
 
         function copyToClipboard() {
@@ -346,6 +460,9 @@
             btn.disabled = true;
             
             const target = document.getElementById('captureArea');
+            const manualVal = document.getElementById('customClassInput').value.trim();
+            const dropdownVal = document.getElementById('classSelect').value;
+            const finalClass = manualVal || dropdownVal || "All";
 
             html2canvas(target, {
                 scale: 2, 
@@ -359,7 +476,7 @@
                 btn.innerText = originalText;
                 btn.disabled = false;
                 const link = document.createElement('a');
-                link.download = `英聽王成績報告_${currentAnalysisTimeStr || 'result'}.png`;
+                link.download = `${finalClass}_英聽王成績報告_${currentAnalysisTimeStr || 'result'}.png`;
                 link.href = canvas.toDataURL();
                 link.click();
             }).catch(err => {
